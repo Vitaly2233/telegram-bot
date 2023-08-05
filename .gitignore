@@ -1,0 +1,15 @@
+# package directories
+node_modules
+jspm_packages
+
+# Serverless directories
+.serverless
+
+.idea
+.idea/workspace.xml
+package-lock.json
+.env
+.DS_Store
+
+.vscode
+.build/
