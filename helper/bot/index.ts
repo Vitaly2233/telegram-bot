@@ -1,12 +1,12 @@
-import { Context, Telegraf } from "telegraf";
+import { Telegraf } from "telegraf";
 import { config } from "../../config";
-import { setupRoutes } from "./setup-routes";
+import { routes } from "../../routes";
 
 class BotApi {
   bot = new Telegraf(config.BOT_TOKEN);
 
   constructor() {
-    setupRoutes(this.bot);
+    routes(this.bot);
     this.bot.launch();
   }
 
