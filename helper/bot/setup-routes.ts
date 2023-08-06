@@ -1,22 +1,13 @@
-import axios from "axios";
 import { Context, Telegraf } from "telegraf";
-import { message, editedMessage } from "telegraf/filters";
+import { message } from "telegraf/filters";
 import { Update } from "telegraf/typings/core/types/typegram";
 import { randomNumber } from "../../utils/random-number";
+import { ai } from "../ai";
 import { externalApi } from "../external-api";
 import { isInvalidMessageText } from "./is-invalid-message-text";
 
 export const setupRoutes = (bot: Telegraf<Context<Update>>) => {
-  bot.command("gay", async (ctx) => {
-    const gayPercent = randomNumber(0, 101);
-    const messageId = ctx.message.message_id;
-
-    await ctx.reply(`Ти гей на ${gayPercent}%`, {
-      reply_to_message_id: messageId,
-    });
-  });
-
-  bot.on(message("text"), async (ctx) => {
+  bot.on(message("text"), async (ctx, next) => {
     const text = ctx.message.text;
     const messageId = ctx.message.message_id;
 
@@ -26,6 +17,20 @@ export const setupRoutes = (bot: Telegraf<Context<Update>>) => {
         reply_to_message_id: messageId,
       });
     }
+    await next();
+  });
+
+  bot.command("gay", async (ctx) => {
+    const gayPercent = randomNumber(0, 101);
+    const messageId = ctx.message.message_id;
+
+    const text = await ai.askAi("say hello");
+
+    await ctx.reply(text);
+
+    await ctx.reply(`Ти гей на ${gayPercent}%`, {
+      reply_to_message_id: messageId,
+    });
   });
 
   bot.on(message("new_chat_members"), async (ctx) => {

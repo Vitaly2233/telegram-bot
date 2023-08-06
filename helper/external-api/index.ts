@@ -7,7 +7,7 @@ class ExternalApi {
     );
     const historyItems = deepstateResult.data;
 
-    return historyItems[historyItems.length - 1]
+    return historyItems[historyItems.length - 1];
   }
 }
 

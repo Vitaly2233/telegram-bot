@@ -7,4 +7,5 @@ const ENV = process.env;
 
 export const config = {
   BOT_TOKEN: ENV.BOT_TOKEN,
+  COHERE_TOKEN: ENV.COHERE_TOKEN,
 };
