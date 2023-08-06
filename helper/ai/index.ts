@@ -6,25 +6,23 @@ class AI {
     const response = await axios.post(
       "https://api.cohere.ai/generate",
       {
-        model: "command-xlarge-nightly",
         prompt: text,
       },
       {
         headers: {
           Authorization: `Bearer ${config.COHERE_TOKEN}`,
           "Content-Type": "application/json",
+          "Cohere-Version": "2021-11-08",
         },
       }
     );
 
-    const responseText = response?.data?.text;
+    const responseText = response?.data;
     return responseText;
   }
 
   async askAi(question: string) {
-    return this.generateText(
-      `Write only short answer for the text: ${question}`
-    );
+    return this.generateText(question);
   }
 }
 
