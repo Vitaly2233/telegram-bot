@@ -11,7 +11,12 @@ interface Guess {
 
 const data: Record<
   number,
-  { participants?: number[]; gameMessageId?: number; guesses?: Guess[] }
+  {
+    participants: number[];
+    guesses: Guess[];
+    wordToGuess?: string;
+    question?: string;
+  }
 > = {};
 
 const requiredParticipantsAmount = 2;
@@ -24,7 +29,7 @@ export const startWordGame = async (ctx: CommandContext) => {
     );
 
   const participants = [ctx.message.from.id];
-  data[chatId] = { participants };
+  data[chatId] = { participants, guesses: [] };
   await ctx.reply(
     `Гра стартонула, кількість учасників: ${participants.length}. Необхідна кількість: ${requiredParticipantsAmount}`,
     {
@@ -100,10 +105,12 @@ const setupGame = async (ctx: ActionContext) => {
   const chatId = ctx.chat.id;
 
   const gameMessage = await ctx.reply(
-    `Загадане слово: \n${hideWord(wordToGuess)}\n\nЗапитання: \n${question}`
+    generateGameMessage(wordToGuess, question, [])
   );
   await ctx.pinChatMessage(gameMessage.message_id);
-  data[chatId].gameMessageId = gameMessage.message_id;
+
+  data[chatId].question = question;
+  data[chatId].wordToGuess = wordToGuess;
 };
 
 const generateGameQuestion = async () => {
@@ -114,9 +121,37 @@ const generateGameQuestion = async () => {
   return { wordToGuess, question };
 };
 
-const hideWord = (word: string) => {
+const generateGuess = async (
+  allGuesses: Guess[],
+  userId: number,
+  text: string,
+  ctx: TextContext
+) => {
+  const lastGuess = allGuesses[allGuesses.length - 1];
+
+  if (lastGuess.userId === userId) {
+    await ctx.reply(
+      `Ти @${ctx.message.from.username} уже сказав букву, того жди поки інший назве`
+    );
+  }
+};
+
+const hideWord = (word: string, letters: string[]) => {
   return word
     .split("")
-    .map(() => "*")
+    .map((letter) => (letters.includes(letter) ? letter : "*"))
     .join("  ");
+};
+
+const generateGameMessage = (
+  wordToGuess: string,
+  question: string,
+  guesses: Guess[]
+) => {
+  const letters = guesses.map((guess) => guess.letter);
+
+  return `Загадане слово: \n${hideWord(
+    wordToGuess,
+    letters
+  )}\n\nЗапитання: \n${question}`;
 };
