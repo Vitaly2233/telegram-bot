@@ -1,3 +1,4 @@
+import { Context } from "telegraf";
 import { ai } from "../../helper/ai";
 import { botApi } from "../../helper/bot";
 import { ActionContext, CommandContext } from "../../models/command-context";
@@ -9,15 +10,15 @@ interface Guess {
   letter: string;
 }
 
-const data: Record<
-  number,
-  {
-    participants: number[];
-    guesses: Guess[];
-    wordToGuess?: string;
-    question?: string;
-  }
-> = {};
+interface ChatData {
+  participants: number[];
+  guesses: Guess[];
+  wordToGuess?: string;
+  question?: string;
+  gameMessageId?: number;
+}
+
+const data: Record<number, ChatData> = {};
 
 const requiredParticipantsAmount = 2;
 
@@ -64,7 +65,7 @@ export const takePart = async (ctx: ActionContext) => {
   if (chatData.participants.length === requiredParticipantsAmount) {
     await ctx.reply("Ну всі гравці зібрались, розпочинаємо");
     await ctx.deleteMessage();
-    await setupGame(ctx);
+    await startGame(ctx);
   }
 };
 
@@ -85,22 +86,10 @@ export const handleSendWord = async (ctx: TextContext) => {
 
   if (!data[chatId].guesses) data[chatId].guesses = [];
 
-  const guesses = data[chatId].guesses;
-  if (guesses.length === 0) {
-    guesses.push({ letter: messageText, userId });
-  } else {
-    const lastGuess = guesses[guesses.length - 1];
-    if (lastGuess.userId !== userId) {
-      await ctx.reply(
-        `Ти @${ctx.message.from.username} уже сказав букву, того жди поки інший назве`
-      );
-    }
-
-    //TODO add logic for adding guesses for data
-  }
+  await handleUserGuess(ctx, messageText, userId, data[chatId]);
 };
 
-const setupGame = async (ctx: ActionContext) => {
+const startGame = async (ctx: ActionContext) => {
   const { question, wordToGuess } = await generateGameQuestion();
   const chatId = ctx.chat.id;
 
@@ -109,6 +98,7 @@ const setupGame = async (ctx: ActionContext) => {
   );
   await ctx.pinChatMessage(gameMessage.message_id);
 
+  data[chatId].gameMessageId = gameMessage.message_id;
   data[chatId].question = question;
   data[chatId].wordToGuess = wordToGuess;
 };
@@ -121,18 +111,49 @@ const generateGameQuestion = async () => {
   return { wordToGuess, question };
 };
 
-const generateGuess = async (
-  allGuesses: Guess[],
-  userId: number,
+const handleUserGuess = async (
+  ctx: Context,
   text: string,
-  ctx: TextContext
+  userId: number,
+  chatData: ChatData
 ) => {
-  const lastGuess = allGuesses[allGuesses.length - 1];
+  const { guesses } = chatData;
+  const lastGuess = guesses[guesses.length - 1];
 
-  if (lastGuess.userId === userId) {
-    await ctx.reply(
+  if (lastGuess && lastGuess.userId === userId) {
+    return ctx.reply(
       `Ти @${ctx.message.from.username} уже сказав букву, того жди поки інший назве`
     );
+  }
+
+  const newGuess: Guess = {
+    letter: text,
+    userId,
+  };
+  chatData.guesses.push(newGuess);
+
+  const newMessage = generateGameMessage(
+    chatData.wordToGuess,
+    chatData.question,
+    chatData.guesses
+  );
+
+  try {
+    await ctx.telegram.editMessageText(
+      ctx.chat.id,
+      chatData.gameMessageId,
+      "123",
+      newMessage
+    );
+    await ctx.reply(`Нехуя собі, ще й вгадав`, {
+      reply_to_message_id: ctx.message.message_id,
+    });
+  } catch (err) {
+    if (err.message.includes("message is not modified")) {
+      await ctx.reply(`промазав`, {
+        reply_to_message_id: ctx.message.message_id,
+      });
+    }
   }
 };
 
