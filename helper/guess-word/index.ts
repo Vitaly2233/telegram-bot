@@ -1,25 +1,13 @@
 import { Context } from "telegraf";
 import { ActionContext, CommandContext } from "../../models/command-context";
 import { TextContext } from "../../models/text-context";
-import { CallbackData } from "../../models/word-game";
-
-interface Guess {
-  username: string;
-  letter: string;
-}
-
-interface ChatData {
-  participants: string[];
-  guesses: Guess[];
-  wordToGuess?: string;
-  question?: string;
-  gameMessageId?: number;
-}
-
-interface UserScore {
-  username: string;
-  score: number;
-}
+import {
+  CallbackData,
+  ChatData,
+  Guess,
+  UserScore,
+} from "../../models/word-game";
+import { botReplyText } from "./bot-text";
 
 export class GuessWord {
   private requiredParticipantsAmount = 2;
@@ -32,19 +20,22 @@ export class GuessWord {
     const chatId = ctx.chat.id;
     if (this.data[chatId])
       return ctx.reply(
-        `Шось питаєшся ноїбать @${ctx.message.from.username} уже є гра`
+        botReplyText.startGameWhenGameExists(ctx.message.from.username)
       );
 
     const participants = [ctx.message.from.username];
     this.data[chatId] = { participants, guesses: [] };
     await ctx.reply(
-      `Гра стартонула, кількість учасників: ${participants.length}. Необхідна кількість: ${this.requiredParticipantsAmount}`,
+      botReplyText.startGame(
+        participants.length,
+        this.requiredParticipantsAmount
+      ),
       {
         reply_markup: {
           inline_keyboard: [
             [
               {
-                text: "Беру участь",
+                text: botReplyText.takePart(),
                 callback_data: CallbackData.TakePart,
               },
             ],
@@ -61,14 +52,14 @@ export class GuessWord {
     const chatData = this.data[chatId];
 
     if (!chatData || chatData.participants.includes(username)) {
-      return ctx.reply(`Та ти уже граєш, чо лізеш @${username}`);
+      return ctx.reply(botReplyText.alreadyPlaying(username));
     }
 
     chatData.participants.push(username);
-    await ctx.reply(`Додався новий гравець: @${username}`);
+    await ctx.reply(botReplyText.newPlayer(username));
 
     if (chatData.participants.length === this.requiredParticipantsAmount) {
-      await ctx.reply("Ну всі гравці зібрались, розпочинаємо");
+      await ctx.reply(botReplyText.enoughPlayers());
       await ctx.deleteMessage();
       await this.setupStartGame(ctx);
     }
@@ -84,9 +75,7 @@ export class GuessWord {
     if (!this.data[chatId]) return;
 
     if (!this.data[chatId]?.participants?.includes(username)) {
-      return ctx.reply(
-        `Так, тут важна баталія, в якій ти не береш участь, не мішай @${ctx.message.from.username}`
-      );
+      return ctx.reply(botReplyText.userInterfering(ctx.message.from.username));
     }
 
     if (!this.data[chatId].guesses) this.data[chatId].guesses = [];
@@ -129,9 +118,7 @@ export class GuessWord {
     const lastGuess = guesses[guesses.length - 1];
 
     if (lastGuess && lastGuess.username === username) {
-      return ctx.reply(
-        `Ти @${ctx.message.from.username} уже сказав букву, того жди поки інший назве`
-      );
+      return ctx.reply(botReplyText.alreadyGuessed(ctx.message.from.username));
     }
 
     const newGuess: Guess = {
@@ -150,15 +137,15 @@ export class GuessWord {
       await ctx.telegram.editMessageText(
         ctx.chat.id,
         chatData.gameMessageId,
-        "123",
+        "_",
         newMessage
       );
-      await ctx.reply(`Нехуя собі, ще й вгадав`, {
+      await ctx.reply(botReplyText.guessedRight(), {
         reply_to_message_id: ctx.message.message_id,
       });
     } catch (err) {
       if (err.message.includes("message is not modified")) {
-        await ctx.reply(`промазав`, {
+        await ctx.reply(botReplyText.guessedWrong(), {
           reply_to_message_id: ctx.message.message_id,
         });
       }
@@ -173,11 +160,12 @@ export class GuessWord {
     const chatId = ctx.chat.id;
     const chatData = this.data[chatId];
     const score = this.calculateScoreByPlayer(guesses, wordToGuess);
-
     const message = this.generateFinalScoreTable(score);
+
     await ctx.telegram.unpinChatMessage(chatId, chatData.gameMessageId);
     await ctx.telegram.deleteMessage(chatId, chatData.gameMessageId);
     await ctx.reply(message);
+
     delete this.data[chatId];
   }
 
@@ -186,7 +174,12 @@ export class GuessWord {
 
     return !wordToGuess
       .split("")
-      .some((char) => !guessedLetters.find((guess) => guess === char));
+      .some(
+        (char) =>
+          !guessedLetters.find(
+            (guess) => guess.toLowerCase() === char.toLowerCase()
+          )
+      );
   }
 
   private async generateQuestion() {
@@ -202,18 +195,18 @@ export class GuessWord {
     question: string,
     guesses: Guess[]
   ) {
-    const letters = guesses.map((guess) => guess.letter);
+    const guessedLetters = guesses.map((guess) => guess.letter);
 
-    return `Загадане слово: \n${this.hideWord(
-      wordToGuess,
-      letters
-    )}\n\nЗапитання: \n${question}`;
+    return botReplyText.messageWithHiddenWord(
+      this.hideWord(wordToGuess, guessedLetters),
+      question
+    );
   }
 
-  private hideWord(word: string, letters: string[]) {
+  private hideWord(word: string, guessedLetters: string[]) {
     return word
       .split("")
-      .map((letter) => (letters.includes(letter) ? letter : "*"))
+      .map((letter) => (guessedLetters.includes(letter) ? letter : "*"))
       .join("  ");
   }
 
@@ -237,9 +230,13 @@ export class GuessWord {
 
   private generateFinalScoreTable(userScore: UserScore[]) {
     const sorted = userScore.sort((a, b) => b.score - a.score);
-    return `Так, ну всьо, наігрались, вот хто виграв:\n${sorted
+    return `${botReplyText.finishResultTitle()}${sorted
       .map((score, index) => {
-        return `${index + 1}.@${score.username} відгадав букв: ${score.score}`;
+        return `${botReplyText.finishResultByUser(
+          index + 1,
+          score.username,
+          score.score
+        )}`;
       })
       .join("\n")}`;
   }
