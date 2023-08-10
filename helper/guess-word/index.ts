@@ -45,6 +45,16 @@ export class GuessWord {
     );
   }
 
+  async handleFinishGame(ctx: Context) {
+    const chatId = ctx.chat.id;
+    if (!this.data[chatId]) return ctx.reply("Та нема що видаляти");
+
+    await ctx.deleteMessage();
+
+    delete this.data[chatId];
+    await ctx.reply(botReplyText.finishGame(ctx.from.username));
+  }
+
   async handleUserTakePart(ctx: ActionContext) {
     const username = ctx.from.username;
     const chatId = ctx.chat.id;

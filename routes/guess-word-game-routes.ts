@@ -8,6 +8,10 @@ export const guessWordGameRoutes = async (bot: Bot) => {
     await guessWordGame.handleStartGame(ctx);
   });
 
+  bot.command("finish_word_game", async (ctx) => {
+    await guessWordGame.handleFinishGame(ctx);
+  })
+
   bot.action(CallbackData.TakePart, async (ctx) => {
     await guessWordGame.handleUserTakePart(ctx);
   });

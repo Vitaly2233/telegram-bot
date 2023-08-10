@@ -7,33 +7,6 @@ export const swearWordsFilter = async (ctx: TextContext) => {
 
   const isValid = isInvalidMessageText(text);
   if (isValid) {
-    await ctx.reply("Не матюкайся!", {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            {
-              text: "take a part",
-              callback_data: "option1",
-            },
-          ],
-        ],
-      },
-    });
-
-    // await botApi.bot.telegram.sendMessage(userId, "Private message", {
-    //   disable_notification: false,
-    // });
-    //   ctx.reply("Не матюкайся!", {
-    //   reply_markup: {
-    //     inline_keyboard: [
-    //       [
-    //         {
-    //           text: "take a part",
-    //           callback_data: "option1",
-    //         },
-    //       ],
-    //     ],
-    //   },
-    // });
+    await ctx.reply("Не матюкайся!");
   }
 };
