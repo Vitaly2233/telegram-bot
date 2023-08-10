@@ -2,10 +2,10 @@ import axios from "axios";
 
 class ExternalApi {
   async getDeepStateLatestUpdate() {
-    const deepstateResult = await axios.get(
+    const apiResult = await axios.get(
       "https://deepstatemap.live/api/history/public"
     );
-    const historyItems = deepstateResult.data;
+    const historyItems = apiResult.data;
 
     return historyItems[historyItems.length - 1];
   }

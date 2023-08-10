@@ -4,7 +4,7 @@ export enum CallbackData {
 
 export interface Guess {
   username: string;
-  letter: string;
+  text: string;
 }
 
 export interface ChatData {

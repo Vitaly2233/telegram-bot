@@ -14,17 +14,17 @@ export class GuessWord {
 
   data: Record<number, ChatData> = {};
 
-  constructor() {}
-
   async handleStartGame(ctx: CommandContext) {
     const chatId = ctx.chat.id;
-    if (this.data[chatId])
+    if (this.data[chatId]) {
       return ctx.reply(
         botReplyText.startGameWhenGameExists(ctx.message.from.username)
       );
+    }
 
     const participants = [ctx.message.from.username];
     this.data[chatId] = { participants, guesses: [] };
+
     await ctx.reply(
       botReplyText.startGame(
         participants.length,
@@ -67,31 +67,30 @@ export class GuessWord {
 
   async handleUserSentWord(ctx: TextContext) {
     const messageText = ctx.message.text;
-    if (messageText.length !== 1) return;
 
     const username = ctx.message.from.username;
     const chatId = ctx.chat.id;
+    const chatData = this.data[chatId];
 
-    if (!this.data[chatId]) return;
+    if (!chatData) return;
 
-    if (!this.data[chatId]?.participants?.includes(username)) {
-      return ctx.reply(botReplyText.userInterfering(ctx.message.from.username));
+    if (!chatData.participants?.includes(username)) {
+      return ctx.reply(botReplyText.userInterfering(), {
+        reply_to_message_id: ctx.message.message_id,
+      });
     }
 
-    if (!this.data[chatId].guesses) this.data[chatId].guesses = [];
+    if (!chatData.guesses) chatData.guesses = [];
 
-    await this.processUserGuess(ctx, messageText, username, this.data[chatId]);
-
-    const isGameFinished = this.isGameFinished(
-      this.data[chatId].guesses,
-      this.data[chatId].wordToGuess
-    );
-    if (!isGameFinished) return;
-    await this.finishGame(
+    const isGameFinished = await this.processUserGuess(
       ctx,
-      this.data[chatId].guesses,
-      this.data[chatId].wordToGuess
+      messageText,
+      username,
+      chatData
     );
+
+    if (!isGameFinished) return;
+    await this.finishGame(ctx);
   }
 
   private async setupStartGame(ctx: ActionContext) {
@@ -113,19 +112,22 @@ export class GuessWord {
     text: string,
     username: string,
     chatData: ChatData
-  ) {
-    const { guesses } = chatData;
+  ): Promise<Boolean> {
+    const { guesses, wordToGuess } = chatData;
     const lastGuess = guesses[guesses.length - 1];
 
     if (lastGuess && lastGuess.username === username) {
-      return ctx.reply(botReplyText.alreadyGuessed(ctx.message.from.username));
+      await ctx.reply(botReplyText.alreadyGuessed(ctx.message.from.username));
+      return false;
     }
 
     const newGuess: Guess = {
-      letter: text,
+      text,
       username,
     };
     chatData.guesses.push(newGuess);
+
+    if (newGuess.text === wordToGuess) return true;
 
     const newMessage = this.generateMessageWithHiddenWord(
       chatData.wordToGuess,
@@ -140,46 +142,22 @@ export class GuessWord {
         "_",
         newMessage
       );
-      await ctx.reply(botReplyText.guessedRight(), {
-        reply_to_message_id: ctx.message.message_id,
-      });
-    } catch (err) {
-      if (err.message.includes("message is not modified")) {
-        await ctx.reply(botReplyText.guessedWrong(), {
-          reply_to_message_id: ctx.message.message_id,
-        });
-      }
-    }
+    } catch (err) {}
+
+    return false;
   }
 
-  private async finishGame(
-    ctx: Context,
-    guesses: Guess[],
-    wordToGuess: string
-  ) {
+  private async finishGame(ctx: Context) {
     const chatId = ctx.chat.id;
     const chatData = this.data[chatId];
-    const score = this.calculateScoreByPlayer(guesses, wordToGuess);
-    const message = this.generateFinalScoreTable(score);
+
+    const message = `@${ctx.from.username} відгадав слово: ${chatData.wordToGuess}`;
 
     await ctx.telegram.unpinChatMessage(chatId, chatData.gameMessageId);
     await ctx.telegram.deleteMessage(chatId, chatData.gameMessageId);
     await ctx.reply(message);
 
     delete this.data[chatId];
-  }
-
-  isGameFinished(guesses: Guess[], wordToGuess: string) {
-    const guessedLetters = guesses.map((guess) => guess.letter);
-
-    return !wordToGuess
-      .split("")
-      .some(
-        (char) =>
-          !guessedLetters.find(
-            (guess) => guess.toLowerCase() === char.toLowerCase()
-          )
-      );
   }
 
   private async generateQuestion() {
@@ -195,7 +173,7 @@ export class GuessWord {
     question: string,
     guesses: Guess[]
   ) {
-    const guessedLetters = guesses.map((guess) => guess.letter);
+    const guessedLetters = guesses.map((guess) => guess.text);
 
     return botReplyText.messageWithHiddenWord(
       this.hideWord(wordToGuess, guessedLetters),
@@ -203,42 +181,13 @@ export class GuessWord {
     );
   }
 
-  private hideWord(word: string, guessedLetters: string[]) {
+  private hideWord(word: string, guessedText: string[]) {
+    const guessedWords = guessedText.filter((text) => text.length === 1);
+
     return word
       .split("")
-      .map((letter) => (guessedLetters.includes(letter) ? letter : "*"))
+      .map((letter) => (guessedWords.includes(letter) ? letter : "*"))
       .join("  ");
-  }
-
-  private calculateScoreByPlayer(guesses: Guess[], wordToGuess: string) {
-    return guesses.reduce((acc, guess) => {
-      if (!wordToGuess.includes(guess.letter)) return acc;
-
-      const scoreIndex = acc.findIndex(
-        (res) => res.username === guess.username
-      );
-
-      if (scoreIndex === -1) {
-        acc.push({ score: 1, username: guess.username });
-      } else {
-        acc[scoreIndex].score += 1;
-      }
-
-      return acc;
-    }, [] as UserScore[]);
-  }
-
-  private generateFinalScoreTable(userScore: UserScore[]) {
-    const sorted = userScore.sort((a, b) => b.score - a.score);
-    return `${botReplyText.finishResultTitle()}${sorted
-      .map((score, index) => {
-        return `${botReplyText.finishResultByUser(
-          index + 1,
-          score.username,
-          score.score
-        )}`;
-      })
-      .join("\n")}`;
   }
 }
 
