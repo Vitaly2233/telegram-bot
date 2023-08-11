@@ -13,8 +13,13 @@ export const imageProcessing = (bot: Bot) => {
       const response = await axios.post("http://127.0.0.1:5000/reduce_height", {
         url,
       });
+      const buff = Buffer.from(response.data, "base64");
+console.log(ctx.chat.id);
 
-      await ctx.replyWithPhoto({ source: response.data.toString("base64") });
+      await ctx.replyWithPhoto({
+        source: buff,
+        filename: "file.png",
+      });
     }
   });
 };
