@@ -60,6 +60,9 @@ export const notifyFlatChats = async (bot: Bot) => {
       }
     }
   } catch (err) {
-    await logger.error(err.message, err);
+    await logger.error(
+      `Error while sending notification about new flat ${err.message}`,
+      err
+    );
   }
 };
