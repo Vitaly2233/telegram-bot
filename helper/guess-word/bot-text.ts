@@ -2,6 +2,7 @@ export const botReplyText = {
   startGame: (participantsAmount: number, requiredParticipantsAmount: number) =>
     `Гра стартонула, кількість учасників: ${participantsAmount}. Необхідна кількість: ${requiredParticipantsAmount}`,
   finishGame: (username: string) => `Гравець @${username} відмінив гру`,
+  nothingToFinish: () => 'Та нема що зупиняти',
   startGameWhenGameExists: (username: string) =>
     `Шось питаєшся ноїбать @${username} уже є гра`,
   takePart: () => "Беру участь",
