@@ -2,7 +2,7 @@ import { Flat } from "../../entity/flat";
 import { Subscriber } from "../../entity/subscriber";
 import { db } from "../../helper/db";
 import { logger } from "../../helper/logger";
-import { olx } from "../../helper/olx";
+import { olx, olxText } from "../../helper/olx";
 import { Bot } from "../../models/bot";
 import { CommandContext } from "../../models/command-context";
 
@@ -22,18 +22,7 @@ export const notifyFlatChats = async (bot: Bot) => {
       db.createEntityManager().find(Subscriber),
     ]);
 
-    const apiFlats: Flat[] = [];
-
-    for (const flat of apiFlatsResponse.data) {
-      apiFlats.push({
-        id: flat.id,
-        title: flat.title,
-        description: flat.description.replaceAll("<br />", ""),
-        url: flat.url,
-        images: flat.photos.map((photo) => olx.parsePhoto(photo)),
-        price: flat.params.find((param) => param.key === "price").value.label,
-      });
-    }
+    const apiFlats: Flat[] = olx.apiFlatToDbFlat(apiFlatsResponse.data);
 
     const newFlats = apiFlats.filter(
       (apiFlat) => !dbFlats.find((dbFlat) => dbFlat.id === apiFlat.id)
@@ -49,13 +38,7 @@ export const notifyFlatChats = async (bot: Bot) => {
         }
         await bot.telegram.sendMessage(
           subscriber.chatId,
-          `Нова квартира на олх: ${flat.title}
-        
-  Опис: ${flat.description}
-  
-  Ціна: ${flat.price}
-  
-  Лінка: ${flat.url}`
+          olxText.newFlat(flat.title, flat.description, flat.price, flat.url)
         );
       }
     }

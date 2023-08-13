@@ -30,6 +30,32 @@ class Olx {
       return acc;
     }, []);
   };
+
+  apiFlatToDbFlat = (flats: any[]) => {
+    return flats.map((flat) => ({
+      id: flat?.id,
+      title: flat?.title,
+      description: flat?.description.replaceAll("<br />", ""),
+      url: flat?.url,
+      images: flat?.photos.map((photo) => olx.parsePhoto(photo)),
+      price: flat?.params.find((param) => param.key === "price").value.label,
+    }));
+  };
 }
+
+export const olxText = {
+  newFlat: (
+    title: string,
+    description: string,
+    price: string,
+    url: string
+  ) => `Нова квартира на олх: ${title}
+        
+  Опис: ${description}
+  
+  Ціна: ${price}
+  
+  Лінка: ${url}`,
+};
 
 export const olx = new Olx();
