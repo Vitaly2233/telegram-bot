@@ -1,5 +1,5 @@
-import { externalApi } from "../helper/external-api";
-import { CommandContext } from "../models/command-context";
+import { externalApi } from "../../helper/external-api";
+import { CommandContext } from "../../models/command-context";
 
 export const getNews = async (ctx: CommandContext) => {
   const deepStateResult = await externalApi.getDeepStateLatestUpdate();

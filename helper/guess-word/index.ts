@@ -10,40 +10,9 @@ import {
 import { botReplyText } from "./bot-text";
 
 export class GuessWord {
-  private requiredParticipantsAmount = 2;
+  requiredParticipantsAmount = 2;
 
   data: Record<number, ChatData> = {};
-
-  async handleStartGame(ctx: CommandContext) {
-    const chatId = ctx.chat.id;
-    if (this.data[chatId]) {
-      return ctx.reply(
-        botReplyText.startGameWhenGameExists(ctx.message.from.username)
-      );
-    }
-
-    const participants = [ctx.message.from.username];
-    this.data[chatId] = { participants, guesses: [] };
-
-    await ctx.reply(
-      botReplyText.startGame(
-        participants.length,
-        this.requiredParticipantsAmount
-      ),
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: botReplyText.takePart(),
-                callback_data: CallbackData.TakePart,
-              },
-            ],
-          ],
-        },
-      }
-    );
-  }
 
   async handleFinishGame(ctx: Context) {
     const chatId = ctx.chat.id;
@@ -53,26 +22,6 @@ export class GuessWord {
 
     delete this.data[chatId];
     await ctx.reply(botReplyText.finishGame(ctx.from.username));
-  }
-
-  async handleUserTakePart(ctx: ActionContext) {
-    const username = ctx.from.username;
-    const chatId = ctx.chat.id;
-
-    const chatData = this.data[chatId];
-
-    if (!chatData || chatData.participants.includes(username)) {
-      return ctx.reply(botReplyText.alreadyPlaying(username));
-    }
-
-    chatData.participants.push(username);
-    await ctx.reply(botReplyText.newPlayer(username));
-
-    if (chatData.participants.length === this.requiredParticipantsAmount) {
-      await ctx.reply(botReplyText.enoughPlayers());
-      await ctx.deleteMessage();
-      await this.setupStartGame(ctx);
-    }
   }
 
   async handleUserSentWord(ctx: TextContext) {
@@ -103,16 +52,13 @@ export class GuessWord {
     await this.finishGame(ctx);
   }
 
-  private async setupStartGame(ctx: ActionContext) {
-    const { question, wordToGuess } = await this.generateQuestion();
-    const chatId = ctx.chat.id;
-
-    const gameMessage = await ctx.reply(
-      this.generateMessageWithHiddenWord(wordToGuess, question, [])
-    );
-    await ctx.pinChatMessage(gameMessage.message_id);
-
-    this.data[chatId].gameMessageId = gameMessage.message_id;
+  async setupStartGame(
+    chatId: number,
+    messageId: number,
+    wordToGuess: string,
+    question: string
+  ) {
+    this.data[chatId].gameMessageId = messageId;
     this.data[chatId].question = question;
     this.data[chatId].wordToGuess = wordToGuess;
   }
@@ -172,7 +118,7 @@ export class GuessWord {
     delete this.data[chatId];
   }
 
-  private async generateQuestion() {
+  async generateQuestion() {
     const wordToGuess = "пизда";
     const question =
       "та шо бля я реально заїбався шукать цей їбучий гпт безплатний";
@@ -180,7 +126,7 @@ export class GuessWord {
     return { wordToGuess, question };
   }
 
-  private generateMessageWithHiddenWord(
+  generateMessageWithHiddenWord(
     wordToGuess: string,
     question: string,
     guesses: Guess[]
@@ -200,6 +146,42 @@ export class GuessWord {
       .split("")
       .map((letter) => (guessedWords.includes(letter) ? letter : "*"))
       .join("  ");
+  }
+
+  isEnoughPlayers(chatId: number) {
+    return (
+      this.data[chatId].participants.length === this.requiredParticipantsAmount
+    );
+  }
+
+  isPlayerTakingPart(chatId: number, username: string) {
+    return (
+      this.data[chatId] && this.data[chatId].participants.includes(username)
+    );
+  }
+
+  addNewPlayer(chatId: number, username: string) {
+    this.data[chatId].participants.push(username);
+  }
+
+  getChatById(chatId: number) {
+    return this.data[chatId];
+  }
+
+  setChatParticipants(chatId: number, participants: string[]) {
+    this.data[chatId].participants = participants;
+  }
+
+  setChatGuesses(chatId: number, guesses: Guess[]) {
+    this.data[chatId].guesses = guesses;
+  }
+
+  deleteChat(chatId: number) {
+    delete this.data[chatId];
+  }
+
+  updateChatData(chatId: number, chatData: ChatData) {
+    this.data[chatId] = chatData;
   }
 }
 
