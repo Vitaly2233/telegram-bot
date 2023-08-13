@@ -1,4 +1,3 @@
-import { botApi } from "../helper/bot";
 import { isInvalidMessageText } from "../helper/bot/is-invalid-message-text";
 import { TextContext } from "../models/text-context";
 

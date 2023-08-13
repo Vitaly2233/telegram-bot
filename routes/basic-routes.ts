@@ -4,8 +4,8 @@ import {
   swearWordsFilter,
   newChatMember,
   leftChatMember,
-} from "../handlers";
-import { howGayTest } from "../handlers/how-gay-test";
+} from "../controllers";
+import { howGayTest } from "../controllers/how-gay-test";
 import { Bot } from "../models/bot";
 
 export const setupBasicRoutes = (bot: Bot) => {
