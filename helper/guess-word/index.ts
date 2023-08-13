@@ -154,7 +154,7 @@ export class GuessWord {
     );
   }
 
-  isUserTakingPart(chatId: number, username: string) {
+  isPlayerTakingPart(chatId: number, username: string) {
     return (
       this.data[chatId] && this.data[chatId].participants.includes(username)
     );

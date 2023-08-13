@@ -2,6 +2,7 @@ import { Context } from "telegraf";
 import { guessWordGame } from "../../helper/guess-word";
 import { botReplyText } from "../../helper/guess-word/bot-text";
 import { ActionContext } from "../../models/command-context";
+import { TextContext } from "../../models/text-context";
 import { CallbackData } from "../../models/word-game";
 
 export const handleStartGame = async (ctx: Context) => {
@@ -56,7 +57,7 @@ export const handleUserTakePart = async (ctx: ActionContext) => {
   const username = ctx.from.username;
   const chatId = ctx.chat.id;
 
-  if (guessWordGame.isUserTakingPart(chatId, username)) {
+  if (guessWordGame.isPlayerTakingPart(chatId, username)) {
     return ctx.reply(botReplyText.alreadyPlaying(username));
   }
 
