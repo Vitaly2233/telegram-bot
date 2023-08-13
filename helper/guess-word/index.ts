@@ -160,8 +160,10 @@ export class GuessWord {
   private async finishGame(ctx: Context) {
     const chatId = ctx.chat.id;
     const chatData = this.data[chatId];
-
-    const message = `@${ctx.from.username} відгадав слово: ${chatData.wordToGuess}`;
+    const message = botReplyText.gameFinished(
+      ctx.from.username,
+      chatData.wordToGuess
+    );
 
     await ctx.telegram.unpinChatMessage(chatId, chatData.gameMessageId);
     await ctx.telegram.deleteMessage(chatId, chatData.gameMessageId);

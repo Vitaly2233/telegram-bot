@@ -16,7 +16,5 @@ export const botReplyText = {
   guessedWrong: () => "промазав",
   messageWithHiddenWord: (hiddenWord: string, question: string) =>
     `Загадане слово: \n${hiddenWord}\n\nЗапитання: \n${question}`,
-  finishResultTitle: () => "Так, ну всьо, наігрались, вот хто виграв:\n",
-  finishResultByUser: (listPosition: number, username: string, score: number) =>
-    `${listPosition}.@${username} відгадав букв: ${score}`,
+  gameFinished: (username: string, wordToGuess: string) => `@${username} відгадав слово: ${wordToGuess}`
 };
