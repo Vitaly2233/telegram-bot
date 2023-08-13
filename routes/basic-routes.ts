@@ -5,7 +5,7 @@ import {
   newChatMember,
   leftChatMember,
 } from "../controllers";
-import { howGayTest } from "../controllers/how-gay-test";
+import { howGayTest } from "../controllers/basic-controllers/how-gay-test";
 import { Bot } from "../models/bot";
 
 export const setupBasicRoutes = (bot: Bot) => {

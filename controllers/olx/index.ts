@@ -1,9 +1,9 @@
-import { Flat } from "../entity/flat";
-import { Subscriber } from "../entity/subscriber";
-import { db } from "../helper/db";
-import { olx } from "../helper/olx";
-import { Bot } from "../models/bot";
-import { CommandContext } from "../models/command-context";
+import { Flat } from "../../entity/flat";
+import { Subscriber } from "../../entity/subscriber";
+import { db } from "../../helper/db";
+import { olx } from "../../helper/olx";
+import { Bot } from "../../models/bot";
+import { CommandContext } from "../../models/command-context";
 
 export const subscribeHandler = async (ctx: CommandContext) => {
   const sub = new Subscriber();
