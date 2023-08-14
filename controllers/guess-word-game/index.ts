@@ -1,6 +1,8 @@
 import { Context } from "telegraf";
+import { ChatGameInfo } from "../../entity/chat-game-info";
 import { guessWordGame } from "../../helper/guess-word";
 import { botReplyText } from "../../helper/guess-word/bot-text";
+import { guessWordDb } from "../../helper/guess-word/guess-word-db";
 import { ActionContext } from "../../models/command-context";
 import { TextContext } from "../../models/text-context";
 import { CallbackData } from "../../models/word-game";
@@ -9,41 +11,48 @@ export const handleStartGame = async (ctx: Context) => {
   const chatId = ctx.chat.id;
   const participants = [ctx.message.from.username];
 
-  const chatData = guessWordGame.getChatById(chatId);
+  const chatInfo = await guessWordDb.getActiveGame(chatId);
 
-  if (chatData) {
+  if (chatInfo) {
     return ctx.reply(
       botReplyText.startGameWhenGameExists(ctx.message.from.username)
     );
   }
 
-  guessWordGame.updateChatData(chatId, { guesses: [], participants: [] });
+  const chatGame = new ChatGameInfo();
+  chatGame.participants = [];
+  chatGame.guesses = [];
+  chatGame.chatId = chatId;
 
-  await ctx.reply(
-    botReplyText.startGame(
-      participants.length,
-      guessWordGame.requiredParticipantsAmount
-    ),
-    {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            {
-              text: botReplyText.takePart(),
-              callback_data: CallbackData.TakePart,
-            },
+  await Promise.all([
+    guessWordDb.createChatGame(chatGame),
+    ctx.reply(
+      botReplyText.startGame(
+        participants.length,
+        guessWordGame.requiredParticipantsAmount
+      ),
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: botReplyText.takePart(),
+                callback_data: CallbackData.TakePart,
+              },
+            ],
           ],
-        ],
-      },
-    }
-  );
+        },
+      }
+    ),
+  ]);
 };
 
 export const handleFinishGame = async (ctx: Context) => {
   const chatId = ctx.chat.id;
-  const chatData = guessWordGame.getChatById(chatId);
 
-  if (!chatData) return ctx.reply(botReplyText.nothingToFinish());
+  const chatInfo = await guessWordDb.getActiveGame(chatId);
+
+  if (!chatInfo) return ctx.reply(botReplyText.nothingToFinish());
 
   guessWordGame.deleteChat(chatId);
 

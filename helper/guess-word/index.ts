@@ -1,18 +1,13 @@
 import { Context } from "telegraf";
-import { ActionContext, CommandContext } from "../../models/command-context";
+import { ChatGameInfo } from "../../entity/chat-game-info";
+import { Guess } from "../../entity/guess";
 import { TextContext } from "../../models/text-context";
-import {
-  CallbackData,
-  ChatData,
-  Guess,
-  UserScore,
-} from "../../models/word-game";
 import { botReplyText } from "./bot-text";
 
 export class GuessWord {
   requiredParticipantsAmount = 2;
 
-  data: Record<number, ChatData> = {};
+  data: Record<number, ChatGameInfo> = {};
 
   async handleFinishGame(ctx: Context) {
     const chatId = ctx.chat.id;
@@ -67,7 +62,7 @@ export class GuessWord {
     ctx: Context,
     text: string,
     username: string,
-    chatData: ChatData
+    chatData: ChatGameInfo
   ): Promise<Boolean> {
     const { guesses, wordToGuess } = chatData;
     const lastGuess = guesses[guesses.length - 1];
@@ -180,7 +175,7 @@ export class GuessWord {
     delete this.data[chatId];
   }
 
-  updateChatData(chatId: number, chatData: ChatData) {
+  updateChatInfo(chatId: number, chatData: ChatGameInfo) {
     this.data[chatId] = chatData;
   }
 }
