@@ -11,6 +11,14 @@ class GuessWordDb {
       .createEntityManager()
       .find(ChatGameInfo, { where: { chatId, isFinished: false } });
   };
+
+  finishGame = async (chatId: number) => {
+    return db
+      .createEntityManager()
+      .update(ChatGameInfo, { chatId }, { isFinished: true });
+  };
+
+  isUserTakingPart = async () => {}
 }
 
 export const guessWordDb = new GuessWordDb();

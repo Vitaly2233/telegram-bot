@@ -54,9 +54,8 @@ export const handleFinishGame = async (ctx: Context) => {
 
   if (!chatInfo) return ctx.reply(botReplyText.nothingToFinish());
 
-  guessWordGame.deleteChat(chatId);
-
   await Promise.all([
+    guessWordDb.finishGame(chatId),
     ctx.deleteMessage(),
     ctx.reply(botReplyText.finishGame(ctx.from.username)),
   ]);

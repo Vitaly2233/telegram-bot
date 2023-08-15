@@ -171,10 +171,6 @@ export class GuessWord {
     this.data[chatId].guesses = guesses;
   }
 
-  deleteChat(chatId: number) {
-    delete this.data[chatId];
-  }
-
   updateChatInfo(chatId: number, chatData: ChatGameInfo) {
     this.data[chatId] = chatData;
   }
