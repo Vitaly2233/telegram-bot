@@ -20,8 +20,6 @@ export const handleStartGame = async (ctx: Context) => {
   }
 
   const chatGame = new ChatGameInfo();
-  chatGame.participants = [];
-  chatGame.guesses = [];
   chatGame.chatId = chatId;
 
   await Promise.all([
@@ -62,35 +60,66 @@ export const handleFinishGame = async (ctx: Context) => {
 };
 
 export const handleUserTakePart = async (ctx: ActionContext) => {
-  const username = ctx.from.username;
   const chatId = ctx.chat.id;
+  const username = ctx.from.username;
 
-  if (guessWordGame.isPlayerTakingPart(chatId, username)) {
+  const isUserPlaying = await guessWordDb.isUserTakingPart(username);
+  if (isUserPlaying) {
     return ctx.reply(botReplyText.alreadyPlaying(username));
   }
 
-  guessWordGame.addNewPlayer(chatId, username);
+  const [chatInfo] = await Promise.all([
+    guessWordDb.getActiveGame(chatId),
+    guessWordDb.addUserToGame(chatId, username),
+    ctx.reply(botReplyText.newPlayer(username)),
+  ]);
 
-  await ctx.reply(botReplyText.newPlayer(username));
+  if (!guessWordGame.isEnoughPlayers(chatInfo)) return;
 
-  if (guessWordGame.isEnoughPlayers(chatId)) {
-    await Promise.all([
-      ctx.reply(botReplyText.enoughPlayers()),
-      ctx.deleteMessage(),
-    ]);
+  await Promise.all([
+    ctx.reply(botReplyText.enoughPlayers()),
+    ctx.deleteMessage(),
+  ]);
 
-    const { question, wordToGuess } = await guessWordGame.generateQuestion();
+  const { question, wordToGuess } = await guessWordGame.generateQuestion();
+  const gameMessage = await ctx.reply(
+    guessWordGame.generateMessageWithHiddenWord(wordToGuess, question, [])
+  );
 
-    const gameMessage = await ctx.reply(
-      guessWordGame.generateMessageWithHiddenWord(wordToGuess, question, [])
-    );
-
-    await ctx.pinChatMessage(gameMessage.message_id);
-    guessWordGame.setupStartGame(
+  await Promise.all([
+    ctx.pinChatMessage(gameMessage.message_id),
+    guessWordDb.setupStartGame(
       chatId,
       gameMessage.message_id,
       wordToGuess,
       question
-    );
+    ),
+  ]);
+};
+
+export const handleUserSendWord = async (ctx: TextContext) => {
+  const messageText = ctx.message.text;
+  const username = ctx.message.from.username;
+  const chatId = ctx.chat.id;
+
+  const chatData = await guessWordDb.getActiveGame(chatId);
+  if (!chatData) return;
+
+  const isUserPlaying = guessWordGame.isUserTakingPart(chatData, username);
+  if (!isUserPlaying) {
+    return ctx.reply(botReplyText.userInterfering(), {
+      reply_to_message_id: ctx.message.message_id,
+    });
   }
+
+  //TODO start from here
+  const isGameFinished = await this.processUserGuess(
+    ctx,
+    messageText,
+    username,
+    chatData
+  );
+
+  if (!isGameFinished) return;
+  await this.finishGame(ctx);
 };

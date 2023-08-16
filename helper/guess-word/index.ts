@@ -19,45 +19,6 @@ export class GuessWord {
     await ctx.reply(botReplyText.finishGame(ctx.from.username));
   }
 
-  async handleUserSentWord(ctx: TextContext) {
-    const messageText = ctx.message.text;
-
-    const username = ctx.message.from.username;
-    const chatId = ctx.chat.id;
-    const chatData = this.data[chatId];
-
-    if (!chatData) return;
-
-    if (!chatData.participants?.includes(username)) {
-      return ctx.reply(botReplyText.userInterfering(), {
-        reply_to_message_id: ctx.message.message_id,
-      });
-    }
-
-    if (!chatData.guesses) chatData.guesses = [];
-
-    const isGameFinished = await this.processUserGuess(
-      ctx,
-      messageText,
-      username,
-      chatData
-    );
-
-    if (!isGameFinished) return;
-    await this.finishGame(ctx);
-  }
-
-  async setupStartGame(
-    chatId: number,
-    messageId: number,
-    wordToGuess: string,
-    question: string
-  ) {
-    this.data[chatId].gameMessageId = messageId;
-    this.data[chatId].question = question;
-    this.data[chatId].wordToGuess = wordToGuess;
-  }
-
   private async processUserGuess(
     ctx: Context,
     text: string,
@@ -143,36 +104,14 @@ export class GuessWord {
       .join("  ");
   }
 
-  isEnoughPlayers(chatId: number) {
-    return (
-      this.data[chatId].participants.length === this.requiredParticipantsAmount
-    );
+  isEnoughPlayers(chat: ChatGameInfo, toAdd?: number) {
+    let participantsAmount = chat.participants.length;
+    if (toAdd) participantsAmount += toAdd;
+    return participantsAmount >= this.requiredParticipantsAmount;
   }
 
-  isPlayerTakingPart(chatId: number, username: string) {
-    return (
-      this.data[chatId] && this.data[chatId].participants.includes(username)
-    );
-  }
-
-  addNewPlayer(chatId: number, username: string) {
-    this.data[chatId].participants.push(username);
-  }
-
-  getChatById(chatId: number) {
-    return this.data[chatId];
-  }
-
-  setChatParticipants(chatId: number, participants: string[]) {
-    this.data[chatId].participants = participants;
-  }
-
-  setChatGuesses(chatId: number, guesses: Guess[]) {
-    this.data[chatId].guesses = guesses;
-  }
-
-  updateChatInfo(chatId: number, chatData: ChatGameInfo) {
-    this.data[chatId] = chatData;
+  isUserTakingPart(chat: ChatGameInfo, username: string) {
+    return chat.participants?.includes(username);
   }
 }
 

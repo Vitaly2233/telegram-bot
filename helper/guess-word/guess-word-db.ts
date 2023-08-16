@@ -9,7 +9,7 @@ class GuessWordDb {
   getActiveGame = async (chatId: number) => {
     return db
       .createEntityManager()
-      .find(ChatGameInfo, { where: { chatId, isFinished: false } });
+      .findOne(ChatGameInfo, { where: { chatId, isFinished: false } });
   };
 
   finishGame = async (chatId: number) => {
@@ -18,7 +18,38 @@ class GuessWordDb {
       .update(ChatGameInfo, { chatId }, { isFinished: true });
   };
 
-  isUserTakingPart = async () => {}
+  isUserTakingPart = async (username: string) => {
+    return db.createEntityManager().findOne(ChatGameInfo, {
+      where: { participants: username, isFinished: false },
+    });
+  };
+
+  addUserToGame = async (chatId: number, username: string) => {
+    return db
+      .createQueryBuilder()
+      .update(ChatGameInfo)
+      .set({
+        participants: () => `array_append("participants", ${username})`,
+      })
+      .where("chatId = :chatId", { chatId })
+      .andWhere("isFinished = :isFinished", { isFinished: false })
+      .execute();
+  };
+
+  setupStartGame = (
+    chatId: number,
+    messageId: number,
+    wordToGuess: string,
+    question: string
+  ) => {
+    return db
+      .createEntityManager()
+      .update(
+        ChatGameInfo,
+        { chatId },
+        { gameMessageId: messageId, wordToGuess, question }
+      );
+  };
 }
 
 export const guessWordDb = new GuessWordDb();
