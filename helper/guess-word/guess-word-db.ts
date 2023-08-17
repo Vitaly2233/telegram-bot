@@ -15,7 +15,11 @@ class GuessWordDb {
   finishGame = async (chatId: number) => {
     return db
       .createEntityManager()
-      .update(ChatGameInfo, { chatId }, { isFinished: true });
+      .update(
+        ChatGameInfo,
+        { chatId, isFinished: false },
+        { isFinished: true }
+      );
   };
 
   isUserTakingPart = async (username: string) => {
@@ -49,6 +53,10 @@ class GuessWordDb {
         { chatId },
         { gameMessageId: messageId, wordToGuess, question }
       );
+  };
+
+  saveEntity = (entity: any) => {
+    return db.createEntityManager().save(ChatGameInfo, entity);
   };
 }
 

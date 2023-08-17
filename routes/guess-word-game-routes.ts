@@ -1,6 +1,10 @@
 import { message } from "telegraf/filters";
-import { handleFinishGame, handleStartGame, handleUserTakePart } from "../controllers";
-import { guessWordGame } from "../helper/guess-word";
+import {
+  handleFinishGame,
+  handleStartGame,
+  handleUserTakePart,
+  handleUserSendWord,
+} from "../controllers";
 import { Bot } from "../models/bot";
 import { CallbackData } from "../models/word-game";
 
@@ -18,7 +22,7 @@ export const guessWordGameRoutes = async (bot: Bot) => {
   });
 
   bot.on(message("text"), async (ctx, next) => {
-    await guessWordGame.handleUserSentWord(ctx);
+    await handleUserSendWord(ctx);
 
     await next();
   });

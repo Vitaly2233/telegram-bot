@@ -1,5 +1,6 @@
 import { Context } from "telegraf";
 import { ChatGameInfo } from "../../entity/chat-game-info";
+import { Guess } from "../../entity/guess";
 import { guessWordGame } from "../../helper/guess-word";
 import { botReplyText } from "../../helper/guess-word/bot-text";
 import { guessWordDb } from "../../helper/guess-word/guess-word-db";
@@ -102,24 +103,54 @@ export const handleUserSendWord = async (ctx: TextContext) => {
   const username = ctx.message.from.username;
   const chatId = ctx.chat.id;
 
-  const chatData = await guessWordDb.getActiveGame(chatId);
-  if (!chatData) return;
+  const newGuess = new Guess();
+  newGuess.text = messageText;
+  newGuess.username = username;
 
-  const isUserPlaying = guessWordGame.isUserTakingPart(chatData, username);
+  const gameData = await guessWordDb.getActiveGame(chatId);
+  if (!gameData) return;
+
+  const isUserPlaying = guessWordGame.isUserTakingPart(gameData, username);
   if (!isUserPlaying) {
     return ctx.reply(botReplyText.userInterfering(), {
       reply_to_message_id: ctx.message.message_id,
     });
   }
 
-  //TODO start from here
-  const isGameFinished = await this.processUserGuess(
-    ctx,
-    messageText,
-    username,
-    chatData
-  );
+  const { guesses, wordToGuess } = gameData;
+  if (guessWordGame.isUserAlreadyGuessed(guesses, username)) {
+    return ctx.reply(botReplyText.alreadyGuessed(ctx.message.from.username));
+  }
 
-  if (!isGameFinished) return;
-  await this.finishGame(ctx);
+  gameData.guesses.push(newGuess);
+  await guessWordDb.saveEntity(gameData);
+
+  if (guessWordGame.isWordGuessed(newGuess.text, wordToGuess)) {
+    const message = botReplyText.gameFinished(
+      ctx.from.username,
+      gameData.wordToGuess
+    );
+
+    return Promise.all([
+      ctx.telegram.unpinChatMessage(chatId, gameData.gameMessageId),
+      ctx.telegram.deleteMessage(chatId, gameData.gameMessageId),
+      ctx.reply(message),
+      guessWordDb.finishGame(chatId),
+    ]);
+  } else {
+    const newMessage = guessWordGame.generateMessageWithHiddenWord(
+      gameData.wordToGuess,
+      gameData.question,
+      gameData.guesses
+    );
+
+    try {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        gameData.gameMessageId,
+        "_",
+        newMessage
+      );
+    } catch (err) {}
+  }
 };

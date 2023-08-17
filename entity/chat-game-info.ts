@@ -13,17 +13,17 @@ export class ChatGameInfo {
   participants: string[] = [];
 
   @OneToMany(() => Guess, (guess) => guess)
-  guesses: Guess[] = [];
+  guesses: Guess[];
 
-  @Column()
+  @Column({ nullable: true })
   wordToGuess?: string;
 
-  @Column()
+  @Column({ nullable: true })
   question?: string;
 
-  @Column()
+  @Column({ nullable: true })
   gameMessageId?: number;
 
-  @Column()
+  @Column({ default: false })
   isFinished: boolean = false;
 }
