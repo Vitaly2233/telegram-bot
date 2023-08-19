@@ -42,6 +42,7 @@ export const notifyFlatChats = async (bot: Bot) => {
     await db.createEntityManager().save(Flat, newFlats);
 
     for (const flat of newFlats) {
+      console.log("🚀 ~ file: index.ts:45 ~ notifyFlatChats ~ flat:", flat)
       for (const subscriber of subscribers) {
         const groupImages = olx.photosToTelegramGroupMessages(flat.images);
         if (groupImages.length) {

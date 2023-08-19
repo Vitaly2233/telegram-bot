@@ -1,5 +1,5 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-import { GuessWordGameInfo } from "./chat-game-info";
+import { GuessWordGameInfo } from "./guess-wordd-game-info";
 
 @Entity()
 export class Guess {

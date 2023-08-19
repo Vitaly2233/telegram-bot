@@ -1,4 +1,4 @@
-import { GuessWordGameInfo } from "../../entity/chat-game-info";
+import { GuessWordGameInfo } from "../../entity/guess-wordd-game-info";
 import { db } from "../db";
 
 class GuessWordDb {

@@ -1,4 +1,4 @@
-import { GuessWordGameInfo } from "../../entity/chat-game-info";
+import { GuessWordGameInfo } from "../../entity/guess-wordd-game-info";
 import { Guess } from "../../entity/guess";
 import { db } from "../db";
 import { botReplyText } from "./bot-text";
