@@ -1,10 +1,6 @@
 import { Context } from "telegraf";
-import { ChatGameInfo } from "../../entity/chat-game-info";
-import { Guess } from "../../entity/guess";
-import { db } from "../../helper/db";
 import { guessWordGame } from "../../helper/guess-word";
 import { botReplyText } from "../../helper/guess-word/bot-text";
-import { guessWordDb } from "../../helper/guess-word/guess-word-db";
 import { ActionContext } from "../../models/command-context";
 import { TextContext } from "../../models/text-context";
 import { CallbackData } from "../../models/word-game";
@@ -13,7 +9,7 @@ export const handleStartGame = async (ctx: Context) => {
   const chatId = ctx.chat.id;
   const participants = [ctx.message.from.username];
 
-  const chatInfo = await guessWordDb.getActiveGame(chatId);
+  const chatInfo = await guessWordGame.getActiveGame(chatId);
 
   if (chatInfo) {
     return ctx.reply(
@@ -21,12 +17,8 @@ export const handleStartGame = async (ctx: Context) => {
     );
   }
 
-  const chatGame = new ChatGameInfo();
-  chatGame.participants = participants;
-  chatGame.chatId = chatId;
-
   await Promise.all([
-    guessWordDb.createChatGame(chatGame),
+    guessWordGame.createChatGame(participants, chatId),
     ctx.reply(
       botReplyText.startGame(
         participants.length,
@@ -51,12 +43,12 @@ export const handleStartGame = async (ctx: Context) => {
 export const handleFinishGame = async (ctx: Context) => {
   const chatId = ctx.chat.id;
 
-  const chatInfo = await guessWordDb.getActiveGame(chatId);
+  const chatInfo = await guessWordGame.getActiveGame(chatId);
 
   if (!chatInfo) return ctx.reply(botReplyText.nothingToFinish());
 
   await Promise.all([
-    guessWordDb.finishGame(chatId),
+    guessWordGame.finishGame(chatId),
     ctx.deleteMessage(),
     ctx.reply(botReplyText.finishGame(ctx.from.username)),
   ]);
@@ -66,20 +58,18 @@ export const handleUserTakePart = async (ctx: ActionContext) => {
   const chatId = ctx.chat.id;
   const username = ctx.from.username;
 
-  const chatInfo = await guessWordDb.getActiveGame(chatId);
-  const isUserTakingPart = guessWordGame.isUserTakingPart(chatInfo, username);
+  const game = await guessWordGame.getActiveGame(chatId);
+  const isUserTakingPart = guessWordGame.isUserTakingPart(game, username);
   if (isUserTakingPart) {
     return ctx.reply(botReplyText.alreadyPlaying(username));
   }
 
-  chatInfo.participants.push(username);
-
   await Promise.all([
-    guessWordDb.saveEntity(chatInfo),
+    guessWordGame.addParticipantToGame(game, username),
     ctx.reply(botReplyText.newPlayer(username)),
   ]);
 
-  if (!guessWordGame.isEnoughPlayers(chatInfo)) return;
+  if (!guessWordGame.isEnoughPlayers(game)) return;
 
   await Promise.all([
     ctx.reply(botReplyText.enoughPlayers()),
@@ -91,13 +81,14 @@ export const handleUserTakePart = async (ctx: ActionContext) => {
     guessWordGame.generateMessageWithHiddenWord(wordToGuess, question, [])
   );
 
-  chatInfo.question = question;
-  chatInfo.wordToGuess = wordToGuess;
-  chatInfo.gameMessageId = gameMessage.message_id;
-
   await Promise.all([
     ctx.pinChatMessage(gameMessage.message_id),
-    guessWordDb.saveEntity(chatInfo),
+    guessWordGame.setupStartGame(
+      game,
+      question,
+      wordToGuess,
+      gameMessage.message_id
+    ),
   ]);
 };
 
@@ -106,47 +97,45 @@ export const handleUserSendWord = async (ctx: TextContext) => {
   const username = ctx.message.from.username;
   const chatId = ctx.chat.id;
 
-  const gameData = await guessWordDb.getActiveGame(chatId);
-  if (!gameData) return;
+  const game = await guessWordGame.getActiveGame(chatId);
+  if (!game) return;
 
-  const isUserPlaying = guessWordGame.isUserTakingPart(gameData, username);
+  const isUserPlaying = guessWordGame.isUserTakingPart(game, username);
   if (!isUserPlaying) {
     return ctx.reply(botReplyText.userInterfering(), {
       reply_to_message_id: ctx.message.message_id,
     });
   }
 
-  const { guesses, wordToGuess } = gameData;
+  const { guesses, wordToGuess } = game;
   if (guessWordGame.isUserAlreadyGuessed(guesses, username)) {
     return ctx.reply(botReplyText.alreadyGuessed(ctx.message.from.username));
   }
-  if (!gameData.guesses) gameData.guesses = [];
+  if (!game.guesses) game.guesses = [];
 
-  const newGuess = new Guess();
-  newGuess.text = messageText;
-  newGuess.username = username;
-  await db.getRepository(Guess).save(newGuess);
-
-  gameData.guesses.push(newGuess);
-  await guessWordDb.saveEntity(gameData);
+  const newGuess = await guessWordGame.makeGuessForGame(
+    game,
+    messageText,
+    username
+  );
 
   if (guessWordGame.isWordGuessed(newGuess.text, wordToGuess)) {
     const message = botReplyText.gameFinished(
       ctx.from.username,
-      gameData.wordToGuess
+      game.wordToGuess
     );
 
     return Promise.all([
-      ctx.telegram.unpinChatMessage(chatId, gameData.gameMessageId),
-      ctx.telegram.deleteMessage(chatId, gameData.gameMessageId),
+      ctx.telegram.unpinChatMessage(chatId, game.gameMessageId),
+      ctx.telegram.deleteMessage(chatId, game.gameMessageId),
       ctx.reply(message),
-      guessWordDb.finishGame(chatId),
+      guessWordGame.finishGame(chatId),
     ]);
   } else {
     const newMessage = guessWordGame.generateMessageWithHiddenWord(
-      gameData.wordToGuess,
-      gameData.question,
-      gameData.guesses
+      game.wordToGuess,
+      game.question,
+      game.guesses
     );
     const botMessage = botReplyText.guessedRight();
 
@@ -155,7 +144,7 @@ export const handleUserSendWord = async (ctx: TextContext) => {
         ctx.reply(botMessage),
         ctx.telegram.editMessageText(
           ctx.chat.id,
-          gameData.gameMessageId,
+          game.gameMessageId,
           "_",
           newMessage
         ),

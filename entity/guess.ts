@@ -1,13 +1,13 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-import { ChatGameInfo } from "./chat-game-info";
+import { GuessWordGameInfo } from "./chat-game-info";
 
 @Entity()
 export class Guess {
   @PrimaryGeneratedColumn()
   id?: number;
 
-  @ManyToOne(() => ChatGameInfo, (chatInfo) => chatInfo.guesses)
-  chatInfo: ChatGameInfo;
+  @ManyToOne(() => GuessWordGameInfo, (chatInfo) => chatInfo.guesses)
+  gameInfo: GuessWordGameInfo;
 
   @Column()
   username: string;

@@ -2,7 +2,7 @@ import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { Guess } from "./guess";
 
 @Entity()
-export class ChatGameInfo {
+export class GuessWordGameInfo {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -12,7 +12,7 @@ export class ChatGameInfo {
   @Column("text", { array: true })
   participants: string[] = [];
 
-  @OneToMany(() => Guess, (guess) => guess.chatInfo)
+  @OneToMany(() => Guess, (guess) => guess.gameInfo)
   guesses: Guess[];
 
   @Column({ nullable: true })
