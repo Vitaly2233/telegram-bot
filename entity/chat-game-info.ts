@@ -12,7 +12,7 @@ export class ChatGameInfo {
   @Column("text", { array: true })
   participants: string[] = [];
 
-  @OneToMany(() => Guess, (guess) => guess)
+  @OneToMany(() => Guess, (guess) => guess.chatInfo)
   guesses: Guess[];
 
   @Column({ nullable: true })

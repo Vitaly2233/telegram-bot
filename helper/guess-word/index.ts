@@ -46,6 +46,7 @@ export class GuessWord {
   }
 
   isUserAlreadyGuessed = (guesses: Guess[], username: string) => {
+    if (!guesses) return false;
     const lastGuess = guesses[guesses.length - 1];
 
     return lastGuess && lastGuess.username === username;

@@ -7,9 +7,12 @@ class GuessWordDb {
   };
 
   getActiveGame = async (chatId: number) => {
-    return db
-      .createEntityManager()
-      .findOne(ChatGameInfo, { where: { chatId, isFinished: false } });
+    return db.createEntityManager().findOne(ChatGameInfo, {
+      where: { chatId, isFinished: false },
+      relations: {
+        guesses: true,
+      },
+    });
   };
 
   finishGame = async (chatId: number) => {
@@ -28,18 +31,6 @@ class GuessWordDb {
     });
   };
 
-  addUserToGame = async (chatId: number, username: string) => {
-    return db
-      .createQueryBuilder()
-      .update(ChatGameInfo)
-      .set({
-        participants: () => `array_append("participants", ${username})`,
-      })
-      .where("chatId = :chatId", { chatId })
-      .andWhere("isFinished = :isFinished", { isFinished: false })
-      .execute();
-  };
-
   setupStartGame = (
     chatId: number,
     messageId: number,
@@ -56,7 +47,7 @@ class GuessWordDb {
   };
 
   saveEntity = (entity: any) => {
-    return db.createEntityManager().save(ChatGameInfo, entity);
+    return db.getRepository(ChatGameInfo).save(entity)
   };
 }
 
