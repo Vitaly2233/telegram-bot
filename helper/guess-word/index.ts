@@ -1,9 +1,12 @@
-import { ChatGameInfo } from "../../entity/chat-game-info";
+import { GuessWordGameInfo } from "../../entity/chat-game-info";
 import { Guess } from "../../entity/guess";
+import { db } from "../db";
 import { botReplyText } from "./bot-text";
+import { guessWordDb } from "./guess-word-db";
 
-export class GuessWord {
+export class GuessWordGame {
   requiredParticipantsAmount = 2;
+  private repository = db.getRepository(GuessWordGameInfo);
 
   async generateQuestion() {
     const wordToGuess = "пизда";
@@ -11,6 +14,56 @@ export class GuessWord {
       "та шо бля я реально заїбався шукать цей їбучий гпт безплатний";
 
     return { wordToGuess, question };
+  }
+
+  getActiveGame(chatId: number) {
+    return guessWordDb.getActiveGame(chatId);
+  }
+
+  createChatGame(participants: string[], chatId: number) {
+    const chatGame = new GuessWordGameInfo();
+    chatGame.participants = participants;
+    chatGame.chatId = chatId;
+
+    return guessWordDb.createChatGame(chatGame);
+  }
+
+  finishGame(chatId: number) {
+    return guessWordDb.finishGame(chatId);
+  }
+
+  addParticipantToGame(game: GuessWordGameInfo, participant: string) {
+    game.participants.push(participant);
+    return guessWordDb.saveEntity(game);
+  }
+
+  setupStartGame(
+    game: GuessWordGameInfo,
+    question: string,
+    wordToGuess: string,
+    gameMessageId: number
+  ) {
+    game.question = question;
+    game.wordToGuess = wordToGuess;
+    game.gameMessageId = gameMessageId;
+
+    return guessWordDb.saveEntity(game);
+  }
+
+  async makeGuessForGame(
+    game: GuessWordGameInfo,
+    messageText: string,
+    username: string
+  ) {
+    const newGuess = new Guess();
+    newGuess.text = messageText;
+    newGuess.username = username;
+    const savedGuess = await gameGuess.saveGuess(newGuess);
+
+    game.guesses.push(newGuess);
+    await guessWordDb.saveEntity(game);
+
+    return savedGuess;
   }
 
   generateMessageWithHiddenWord(
@@ -35,13 +88,13 @@ export class GuessWord {
       .join("  ");
   }
 
-  isEnoughPlayers(chat: ChatGameInfo, toAdd?: number) {
+  isEnoughPlayers(chat: GuessWordGameInfo, toAdd?: number) {
     let participantsAmount = chat.participants.length;
     if (toAdd) participantsAmount += toAdd;
     return participantsAmount >= this.requiredParticipantsAmount;
   }
 
-  isUserTakingPart(chat: ChatGameInfo, username: string) {
+  isUserTakingPart(chat: GuessWordGameInfo, username: string) {
     return chat.participants?.includes(username);
   }
 
@@ -57,4 +110,13 @@ export class GuessWord {
   };
 }
 
-export const guessWordGame = new GuessWord();
+class GameGuess {
+  private repository = db.getRepository(Guess);
+
+  saveGuess(guess: Guess) {
+    return this.repository.save(guess);
+  }
+}
+
+export const guessWordGame = new GuessWordGame();
+export const gameGuess = new GameGuess();
