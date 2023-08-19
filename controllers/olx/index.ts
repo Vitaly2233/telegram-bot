@@ -25,6 +25,7 @@ export const notifyFlatChats = async (bot: Bot) => {
     const apiFlats: Flat[] = [];
 
     for (const flat of apiFlatsResponse.data) {
+      console.log("🚀 ~ file: index.ts:28 ~ notifyFlatChats ~ flat:", flat)
       apiFlats.push({
         id: flat.id,
         title: flat.title,
@@ -42,7 +43,6 @@ export const notifyFlatChats = async (bot: Bot) => {
     await db.createEntityManager().save(Flat, newFlats);
 
     for (const flat of newFlats) {
-      console.log("🚀 ~ file: index.ts:45 ~ notifyFlatChats ~ flat:", flat)
       for (const subscriber of subscribers) {
         const groupImages = olx.photosToTelegramGroupMessages(flat.images);
         if (groupImages.length) {
