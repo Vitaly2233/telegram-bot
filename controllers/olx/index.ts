@@ -25,11 +25,10 @@ export const notifyFlatChats = async (bot: Bot) => {
     const apiFlats: Flat[] = [];
 
     for (const flat of apiFlatsResponse.data) {
-      console.log("🚀 ~ file: index.ts:28 ~ notifyFlatChats ~ flat:", flat)
       apiFlats.push({
         id: flat.id,
         title: flat.title,
-        description: flat.description.replaceAll("<br />", ""),
+        description: flat.description.replace(/<br \/>/g,""),
         url: flat.url,
         images: flat.photos.map((photo) => olx.parsePhoto(photo)),
         price: flat.params.find((param) => param.key === "price").value.label,
