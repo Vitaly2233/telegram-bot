@@ -107,6 +107,8 @@ export const handleUserSendWord = async (ctx: TextContext) => {
     });
   }
 
+  if (!guessWordGame.isEnoughPlayers(game)) return;
+
   const { guesses, wordToGuess } = game;
   if (guessWordGame.isUserAlreadyGuessed(guesses, username)) {
     return ctx.reply(botReplyText.alreadyGuessed(ctx.message.from.username));
