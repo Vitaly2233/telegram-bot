@@ -4,7 +4,7 @@ const input = ["a", "b", "c"];
 //   console.log(String.fromCharCode(i));
 // }
 
-let i = 0;
+let i = 97;
 let inputIteration = 0;
 setInterval((interval) => {
   console.log(interval);
