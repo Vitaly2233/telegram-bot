@@ -6,6 +6,7 @@ const input = ["a", "b", "c"];
 
 let i = 97;
 let inputIteration = 0;
+
 setInterval((interval) => {
   console.log(interval);
   if (String.fromCharCode(i) === input[inputIteration]) {
