@@ -4,7 +4,7 @@ export const botReplyText = {
   finishGame: (username: string) => `Гравець @${username} відмінив гру`,
   nothingToFinish: () => 'Та нема що зупиняти',
   startGameWhenGameExists: (username: string) =>
-    `Шось питаєшся ноїбать @${username} уже є гра`,
+    `game exists @${username}`,
   takePart: () => "Беру участь",
   alreadyPlaying: (username: string) =>
     `Та ти уже граєш, чо лізеш @${username}`,
