@@ -13,7 +13,7 @@ export const botReplyText = {
   userInterfering: () => `Не мішай`,
   alreadyGuessed: (username: string) =>
     `Ти @${username} уже сказав букву, того жди поки інший назве`,
-  guessedRight: () => "Нехуя собі, ще й вгадав",
+  guessedRight: () => "guessed right",
   guessedWrong: () => "промазав",
   messageWithHiddenWord: (hiddenWord: string, question: string) =>
     `Загадане слово: \n${hiddenWord}\n\nЗапитання: \n${question}`,
