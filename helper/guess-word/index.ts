@@ -9,9 +9,9 @@ export class GuessWordGame {
   private repository = db.getRepository(GuessWordGameInfo);
 
   async generateQuestion() {
-    const wordToGuess = "пизда";
+    const wordToGuess = "word to guess";
     const question =
-      "та шо бля я реально заїбався шукать цей їбучий гпт безплатний";
+      "question";
 
     return { wordToGuess, question };
   }
